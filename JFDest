@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+    parameters {
+        choice(name: "action", choices: ['plan', 'apply', 'destroy'])
+    }
+    environment {
+        TFVARS_PASSPHRASE = credentials('gpg-passphrase')
+        APP_NAME = "azure-web-search"
+    }
+    stages {
+        stage ('TF Initialising') {
+            steps {
+                script {
+                    sh "terraform init"
+                }
+            }
+        }
+        stage ('Decrypting the tfvars File') {
+            steps {
+                script {
+                    sh "gpg --batch --yes --passphrase $TFVARS_PASSPHRASE -d terraform.tfvars.gpg > terraform.tfvars"
+                }
+            }
+        }
+        stage ('Updating the Image Name') {
+            steps {
+                script {
+                    sh """
+                    sed -i 's|^image_name = \".*\"|image_name = \"amitsingh01/${APP_NAME}:${IMAGE_TAG}\"|' terraform.tfvars
+                    """
+                }
+            }
+        }
+        stage ('TF Plan') {
+            steps {
+                script {
+                    if (params.action == 'plan') {
+                        sh "terraform plan"
+                    }
+                }
+            }
+        }
+        stage ('TF Apply') {
+            steps {
+                script {
+                    if (params.action == 'apply') {
+                        sh "terraform apply -auto-approve"
+                    }
+                }
+            }
+        }
+        stage ('TF Destroy') {
+            steps {
+                script {
+                    if (params.action == 'destroy') {
+                        sh "terraform destroy -auto-approve"
+                    }
+                }
+            }
+        }
+        stage ('Removing the tfvars File') {
+            steps {
+                script {
+                    sh "rm -rf terraform.tfvars"
+                }
+            }
+        }
+    }
+    post { 
+        always { 
+            cleanWs()
+        }
+    }
+}
