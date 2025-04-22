@@ -1,0 +1,23 @@
+{
+  "extends": ["config:recommended"],
+  "enabledManagers": ["terraform"],
+  "schedule": ["at any time"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["every weekend"]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "automerge": false,
+      "labels": ["needs-review"]
+    },
+    {
+      "matchUpdateTypes": ["security"],
+      "automerge": false,
+      "labels": ["security"]
+    }
+  ],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0
+}
