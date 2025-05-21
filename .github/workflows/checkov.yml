@@ -1,35 +1,31 @@
-name: Checkov IaC Scan
+name: Checkov Docker IaC Scan
 
 on:
   workflow_dispatch:
 
 jobs:
-  checkov_scan:
-    name: Run Checkov Scan
+  checkov_scan_docker:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Create output directory
+        run: mkdir -p checkov_output
 
-      - name: Install Checkov
+      - name: Run Checkov via Docker (text report)
         run: |
-          python -m pip install --upgrade pip
-          pip install checkov
+          docker run --rm -v ${{ github.workspace }}:/iac bridgecrew/checkov -d /iac -o cli \
+            | tee checkov_output/results.txt || true
 
-      - name: Run Checkov scan
+      - name: Run Checkov via Docker (JSON report)
         run: |
-          mkdir -p checkov_output
-          checkov -d . -o cli | tee checkov_output/results.txt || true
-          checkov -d . -o json > checkov_output/results.json || true
+          docker run --rm -v ${{ github.workspace }}:/iac bridgecrew/checkov -d /iac -o json \
+            > checkov_output/results.json || true
 
       - name: Upload Checkov Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: checkov-results
+          name: checkov-docker-results
           path: checkov_output
